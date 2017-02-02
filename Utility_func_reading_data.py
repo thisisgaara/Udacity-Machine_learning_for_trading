@@ -1,7 +1,20 @@
-"""Utility functions"""
+"""Slice and plot"""
 
 import os
 import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def plot_selected(df, columns, start_index, end_index):
+    """Plot the desired columns over index values in the given range."""
+    # TODO: Your code here
+    df = df.ix[start_index:end_index, columns]
+    
+    df.plot()
+    plt.show()
+    
+    # Note: DO NOT modify anything else!
+
 
 def symbol_to_path(symbol, base_dir="data"):
     """Return CSV file path given ticker symbol."""
@@ -13,27 +26,38 @@ def get_data(symbols, dates):
     df = pd.DataFrame(index=dates)
     if 'SPY' not in symbols:  # add SPY for reference, if absent
         symbols.insert(0, 'SPY')
-    dfSPY = pd.read_csv(symbol_to_path(symbols[0]), index_col = 'Date', parse_dates = True, usecols = ['Date', 'Adj Close'], na_values = ['nan'])
-    dfSPY.rename(columns={'Adj Close':'SPY'}, inplace = True)
-    df = df.join(dfSPY, how = 'inner');    
+
     for symbol in symbols:
-        if symbol is not 'SPY':
-            dfsymbol = pd.read_csv(symbol_to_path(symbol), index_col = 'Date', parse_dates = True, usecols = ['Date', 'Adj Close'], na_values = ['nan'])
-            dfsymbol.rename(columns={'Adj Close':str(symbol)}, inplace = True)
-            df = df.join(dfsymbol, how = 'inner')
+        df_temp = pd.read_csv(symbol_to_path(symbol), index_col='Date',
+                parse_dates=True, usecols=['Date', 'Adj Close'], na_values=['nan'])
+        df_temp = df_temp.rename(columns={'Adj Close': symbol})
+        df = df.join(df_temp)
+        if symbol == 'SPY':  # drop dates SPY did not trade
+            df = df.dropna(subset=["SPY"])
+
     return df
+
+
+def plot_data(df, title="Stock prices"):
+    """Plot stock prices with a custom title and meaningful axis labels."""
+    ax = df.plot(title=title, fontsize=12)
+    ax.set_xlabel("Date")
+    ax.set_ylabel("Price")
+    plt.show()
 
 
 def test_run():
     # Define a date range
-    dates = pd.date_range('2010-01-22', '2010-01-26')
+    dates = pd.date_range('2010-01-01', '2010-12-31')
 
     # Choose stock symbols to read
-    symbols = ['GOOG', 'IBM', 'GLD']
+    symbols = ['GOOG', 'IBM', 'GLD']  # SPY will be added in get_data()
     
     # Get stock data
     df = get_data(symbols, dates)
-    print df
+
+    # Slice and plot
+    plot_selected(df, ['SPY', 'IBM'], '2010-03-01', '2010-04-01')
 
 
 if __name__ == "__main__":
